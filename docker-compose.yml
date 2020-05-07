@@ -1,0 +1,61 @@
+version: "3"
+services:
+  app:
+    build:
+      context: ./docker/app
+      args:
+        - TZ=${TZ}
+    volumes:
+      - ./app:/var/www/html
+      - ./logs/app:/var/log/php
+      - phpsocket:/var/run/php-fpm
+    working_dir: /var/www/html
+    environment:
+      - TZ=${TZ}
+
+  web:
+    build: 
+      context: ./docker/nginx
+      args:
+        - TZ=${TZ}
+    depends_on:
+      - app
+    ports:
+      - 8080:80
+    volumes:
+      - ./app:/var/www/html
+      - ./logs/nginx:/var/log/nginx
+      - phpsocket:/var/run/php-fpm
+    working_dir: /var/www/html
+    environment:
+      - TZ=${TZ}
+
+  db:
+    build: 
+      context: ./docker/db
+    ports:
+      - 3306:3306
+    volumes:
+      - db-store:/var/lib/mysql
+      - ./logs/db:/var/log/mysql
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${ROOT_PASSWORD}
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - db
+    ports:
+      - 8000:80
+    environment:
+      - PMA_HOST=db
+      - PMA_PASSWORD=${ROOT_PASSWORD}
+    volumes:
+      - ./data/phpmyadmin/sessions:/sessions
+
+volumes:
+  phpsocket:
+  db-store:
